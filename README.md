@@ -2,7 +2,7 @@
 ### Portafolio de Innovación Tecnológica Avanzada para Soporte a la Decisión de la Alta Dirección
 **Postulación Avanzada Nivel Asesor (Grado 19)** *Convocatoria Abierta de Méritos No. 07-2026 — Procuraduría General de la Nación, Colombia*
 
-[Ver Portafolio](https://nelsonss.github.io/portafolio-dae-pgn/)
+### [Ver Portafolio](https://nelsonss.github.io/portafolio-dae-pgn/)
 ---
 
 ## 📋 Resumen Ejecutivo del Portafolio
@@ -17,7 +17,7 @@ Alineado de forma estricta con las directrices de la **Política Nacional de Exp
 
 El portafolio completo ha sido compilado como aplicaciones interactivas de una sola página (SPAs) autocontenidas y de alto rendimiento. Gracias a la infraestructura de GitHub Pages, la Alta Dirección y el Comité de Evaluación pueden **interactuar directamente con los simuladores en tiempo real** haciendo clic en el siguiente enlace:
 
-👉 **[Haga Clic Aquí para Abrir el Portal Enrutador e Interactuar con el Portafolio Completo en Vivo](#)** *(Reemplazar este enlace por la URL pública que te entregue GitHub Pages, ej: https://tu-usuario.github.io/portafolio-dae-pgn/)*
+👉 **[Haga Clic Aquí para Abrir el Portal Enrutador e Interactuar con el Portafolio Completo en Vivo](#)** *(Reemplazar este enlace por la URL pública que te entregue GitHub Pages, ej: https://nelsonss.github.io/portafolio-dae-pgn/)*
 
 ---
 
@@ -54,11 +54,3 @@ Este portafolio valida de forma fáctica y demostrable el cumplimiento idóneo d
 | **Gobierno de Transparencia y Datos Abiertos** | Aplicación directa de los lineamientos del **CONPES 3920 (Big Data)** y la gobernanza de datos abiertos bajo los principios FAIR según mandatos de la **Ley 1712 de 2014**. |
 
 ---
-
-## 📦 Instrucciones para Pruebas Locales (Standalone)
-
-Dado que las herramientas fueron diseñadas con arquitectura modular premium, usted puede descargar y probar cualquiera de las tres aplicaciones de forma local en su estación de trabajo siguiendo estos simples pasos:
-
-1. Clone este repositorio de manera local:
-   ```bash
-   git clone [https://github.com/tu-usuario/portafolio-dae-pgn.git](https://github.com/tu-usuario/portafolio-dae-pgn.git)
