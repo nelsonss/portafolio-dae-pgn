@@ -2,6 +2,7 @@
 ### Portafolio de Innovación Tecnológica Avanzada para Soporte a la Decisión de la Alta Dirección
 **Postulación Avanzada Nivel Asesor (Grado 19)** *Convocatoria Abierta de Méritos No. 07-2026 — Procuraduría General de la Nación, Colombia*
 
+[Ver Portafolio](https://nelsonss.github.io/portafolio-dae-pgn/)
 ---
 
 ## 📋 Resumen Ejecutivo del Portafolio
