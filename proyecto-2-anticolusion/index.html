@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAE PGN - Plataforma Anticolusión</title>
+    <!-- Tailwind CSS para el diseño responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para las visualizaciones relacionales -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        /* REQUISITO DE CONTENEDOR DE GRÁFICO SEGURO */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 320px;
+            overflow: hidden;
+        }
+
+        /* Estilización de scrollbars internas para mantener el UI premium */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .nav-btn-active {
+            background-color: #1e3a8a; /* Deep Blue PGN */
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2);
+        }
+
+        .fade-in {
+            animation: fadeInFrame 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInFrame {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Efecto de pulso controlado para alertas del simulador */
+        .pulse-warning {
+            animation: pulseWarningFrame 2s infinite;
+        }
+
+        @keyframes pulseWarningFrame {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col lg:flex-row min-h-screen overflow-x-hidden bg-slate-50">
+
+    <!-- Chosen Palette: Slate (Neutrals), Crimson/Deep Blue (Primary/Alerts), Teal (Accent), White (Main Canvas) -->
+    <!-- Application Structure Plan: We designed an immersive dashboard structured in five navigational panes: Desafío Relacional (Context), Arquitectura de Datos (Data Pipelines), Gobernanza y Ética (Compliance), Simulador de Redes (Interactive SNA Sandbox), and KPIs de Impacto (ALICE/VigIA metrics). Rationale: High-ranking decision-makers (Alta Dirección) require a centralized view that translates dry graph-theory math (Louvain modularity) into clear public policy recommendations, maintaining a light, highly readable background. -->
+    <!-- Visualization & Content Choices: 1. Bar Chart (Chart.js) -> Compare detection metrics (Tabular vs SNA/Louvain) -> Quantify why tabular oversight is blind. 2. Radar Chart (Chart.js) -> Evaluate system performance (Precision, Recall, F1, Latency, Explainability) -> Technical justification. 3. Interactive Sandbox (JS Engine) -> Dynamic network simulator -> Toggles between normal independent bidding (Tabular) and clustered bid-rigging rings (Louvain communities) linked by RUES data. NO SVG or Mermaid used as per constraints. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Sidebar Lateral de Navegación Premium -->
+    <aside class="w-full lg:w-72 bg-slate-900 text-slate-300 flex flex-col lg:h-screen sticky top-0 z-50 shadow-2xl">
+        <!-- Logo / Marca PGN -->
+        <div class="p-6 bg-slate-950 border-b border-slate-800 flex flex-col gap-1">
+            <div class="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span class="text-blue-500">⎘</span> CAPA RELACIONAL PGN
+            </div>
+            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Dirección de Apoyo Estratégico</p>
+        </div>
+
+        <!-- Menú de Navegación -->
+        <div class="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto w-full custom-scroll py-4 gap-2 px-3">
+            <button onclick="switchView('desafio')" id="nav-desafio" class="nav-btn-active flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚠</span> El Desafío Relacional
+            </button>
+            <button onclick="switchView('arquitectura')" id="nav-arquitectura" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚙</span> Arquitectura de Datos
+            </button>
+            <button onclick="switchView('simulador')" id="nav-simulador" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚛</span> Simulador de Colusión
+            </button>
+            <button onclick="switchView('gobernanza')" id="nav-gobernanza" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚖</span> Gobernanza y Ética
+            </button>
+            <button onclick="switchView('impacto')" id="nav-impacto" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">📈</span> KPIs de Impacto
+            </button>
+        </div>
+
+        <!-- Información del Sistema / Footer Lateral -->
+        <div class="mt-auto p-4 hidden lg:block border-t border-slate-800 bg-slate-950 text-slate-400">
+            <div class="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider">
+                <span>Versión</span>
+                <span class="text-blue-400">v2.0.26-PREVIEW</span>
+            </div>
+            <p class="text-[9px] text-slate-500 mt-2">Plataforma Inteligente bajo el estándar de Interoperabilidad Nacional.</p>
+        </div>
+    </aside>
+
+    <!-- Canvas Central de Lectura e Interacción -->
+    <main class="flex-1 p-5 md:p-8 lg:p-10 max-h-screen overflow-y-auto custom-scroll w-full flex flex-col gap-6">
+        
+        <!-- HEADER GLOBAL -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-5">
+            <div>
+                <span class="text-xs font-bold text-blue-800 uppercase tracking-widest">Portafolio Innovación 2026</span>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">Detección de Colusión Pública con Louvain</h1>
+            </div>
+            <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 block animate-pulse"></span>
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Servicio Inferencia Activo</span>
+            </div>
+        </header>
+
+        <!-- PANE 1: EL DESAFÍO RELACIONAL -->
+        <section id="pane-desafio" class="fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> El Dolor del Control Tradicional: Redes contra Tablas
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed max-w-4xl">
+                    La colusión y el direccionamiento contractual en sectores altamente vulnerables como el <strong>Sistema General de Regalías (SGR)</strong> o el <strong>Programa de Alimentación Escolar (PAE)</strong> no ocurren como transacciones independientes. Operan como entramados complejos donde empresas legalmente autónomas simulan competencia formal compartiendo beneficiarios finales, directivos comunes o metadatos técnicos en el SECOP II. Este módulo demuestra por qué las auditorías tabulares tradicionales fallan y cómo la Ciencia de Redes devela estas tipologías.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 hover:shadow-md transition-all">
+                        <div class="text-red-600 text-3xl font-extrabold mb-2">✕</div>
+                        <h3 class="font-extrabold text-slate-800 text-sm mb-1">Mioía de Datos Tabular</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Las herramientas tradicionales analizan registros como celdas aisladas en una tabla. Son incapaces de ver que el Representante Legal de la Empresa A es el suplente de junta de su rival, la Empresa B.</p>
+                    </div>
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 hover:shadow-md transition-all">
+                        <div class="text-emerald-600 text-3xl font-extrabold mb-2">✓</div>
+                        <h3 class="font-extrabold text-slate-800 text-sm mb-1">Ciencia de Redes Multiplex</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Modelamos la contratación como un ecosistema. El cruce relacional entre proponentes y juntas directivas devela la colusión precontractual, antes de que se adjudique el erario.</p>
+                    </div>
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 hover:shadow-md transition-all">
+                        <div class="text-blue-600 text-3xl font-extrabold mb-2">⚙</div>
+                        <h3 class="font-extrabold text-slate-800 text-sm mb-1">Modularidad de Louvain</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Agrupa automáticamente los actores que licitan juntos con una frecuencia inusual, calculando la ganancia local de modularidad para priorizar las investigaciones territoriales de la PGN.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-extrabold text-slate-800 text-sm mb-1">Tasa de Detección de Anomalías de Colusión</h3>
+                    <p class="text-xs text-slate-500 mb-4">El gráfico compara la efectividad de la auditoría tradicional plana frente al modelado relacional de la DAE para identificar tipologías avanzadas de direccionamiento precontractual.</p>
+                    <div class="chart-container">
+                        <canvas id="tabularVsNetworkChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-blue-900 to-slate-900 text-white p-6 rounded-xl shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="bg-blue-800 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block mb-3">Marco Conceptual</div>
+                        <h3 class="text-lg font-bold mb-2">El Modelo Matemático de Louvain</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            El algoritmo de Louvain optimiza de forma recursiva la <strong>Modularidad ($Q$)</strong>, evaluando si el peso de las conexiones internas de una comunidad supera significativamente la densidad esperada en un modelo aleatorio nulo:
+                        </p>
+                        <div class="bg-slate-950 p-3 rounded font-mono text-[10px] text-blue-400 mb-4 overflow-x-auto">
+                            Q = 1/(2m) * Σ [ A_ij - (k_i * k_j) / (2m) ] * δ(c_i, c_j)
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-800 pt-3 text-[11px] text-slate-400 flex justify-between items-center">
+                        <span>A_ij: Peso del enlace real</span>
+                        <span>δ(c_i, c_j): Delta de Kronecker</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANE 2: ARQUITECTURA DE DATOS -->
+        <section id="pane-arquitectura" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> Ingesta Multicapa: El Pipeline de Datos de la DAE
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed max-w-4xl">
+                    Esta sección explica cómo consolidamos operativamente los datos abiertos del Estado. El sistema realiza la extracción transaccional del **SECOP II**, la estandariza bajo el formato estructurado internacional **OCDS**, y la cruza mediante interoperabilidad nacional (**X-Road**) con los beneficiarios finales del **RUES** para alimentar el motor de grafos. Explore cada fase a continuación:
+                </p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-6">
+                    <!-- Menú de fases -->
+                    <div class="flex flex-col gap-2">
+                        <button onclick="showPipelinePhase(1)" id="btn-pipe-1" class="text-left p-3 rounded-lg bg-blue-50 border-l-4 border-blue-800 text-xs font-bold text-blue-950 transition-all">
+                            Fase 1: Ingesta OCDS (SECOP II)
+                        </button>
+                        <button onclick="showPipelinePhase(2)" id="btn-pipe-2" class="text-left p-3 rounded-lg bg-slate-50 border-l-4 border-transparent text-xs text-slate-600 hover:bg-slate-100 transition-all">
+                            Fase 2: Cruce de Beneficiarios RUES
+                        </button>
+                        <button onclick="showPipelinePhase(3)" id="btn-pipe-3" class="text-left p-3 rounded-lg bg-slate-50 border-l-4 border-transparent text-xs text-slate-600 hover:bg-slate-100 transition-all">
+                            Fase 3: Red Monopartita Proyectada
+                        </button>
+                        <button onclick="showPipelinePhase(4)" id="btn-pipe-4" class="text-left p-3 rounded-lg bg-slate-50 border-l-4 border-transparent text-xs text-slate-600 hover:bg-slate-100 transition-all">
+                            Fase 4: Ejecución Iterativa Louvain
+                        </button>
+                    </div>
+
+                    <!-- Detalles del Pipeline -->
+                    <div class="lg:col-span-3 bg-slate-900 text-slate-200 p-5 rounded-xl border border-slate-800 relative flex flex-col justify-between min-h-[300px]">
+                        <div class="absolute top-2 right-2 opacity-5 text-6xl">⚙</div>
+                        <div>
+                            <h3 id="pipe-title" class="text-base font-extrabold text-white mb-2">Fase 1: Ingesta OCDS (SECOP II)</h3>
+                            <div id="pipe-content" class="text-xs text-slate-300 space-y-3 leading-relaxed">
+                                <p>Captura diaria automatizada de las licitaciones públicas y uniones temporales desde la API de Datos Abiertos de Colombia Compra Eficiente.</p>
+                                <p><strong>Estandarización:</strong> Mapeamos los datos planos a los bloques del estándar OCDS, específicamente el bloque de Licitación (`tender`) y Adjudicación (`award`), aislando los NITs de consorciados para resolver la ambigüedad de las propuestas físicas.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Terminal Output Mock -->
+                        <div class="mt-4 p-3 bg-slate-950 rounded border border-slate-800 font-mono text-[10px] text-green-400">
+                            <div id="pipe-terminal">> Ingestando contratos SECOP II... OK<br>> Mapeo OCDS completado. 127,450 releases validados.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Radar Chart -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-extrabold text-slate-800 text-sm mb-2">Evaluación del Modelo Anticolusión (Métricas de Calidad)</h3>
+                <p class="text-xs text-slate-500 mb-4">Métricas técnicas basadas en evaluaciones empíricas cruzadas contra tipologías probadas de fraude del SIRI, comparando la precisión, recall y latencia del algoritmo.</p>
+                <div class="chart-container">
+                    <canvas id="performanceRadarChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANE 3: SIMULADOR DE COLUSIÓN (SNA SANDBOX) -->
+        <section id="pane-simulador" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> Simulador de Inteligencia de Redes de Licitación
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed max-w-4xl">
+                    Esta herramienta interactiva simula el comportamiento de un conjunto de proponentes en un municipio. Al activar la **Vista Tabular**, el operador disciplinario solo ve empresas independientes que pujan por contratos de forma legal. Al activar la **Vista de Red con Louvain**, el sistema integra los datos societarios del RUES y calcula la modularidad, desvelando de forma visual y matemática las comunidades sospechosas o carteles colusionados.
+                </p>
+
+                <!-- Simulador Controles -->
+                <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4">
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="toggleSnaView('tabular')" id="btn-sim-tabular" class="nav-btn-active text-xs font-bold py-2 px-4 rounded-lg transition-all">Vista Tabular Ordinaria</button>
+                        <button onclick="toggleSnaView('louvain')" id="btn-sim-louvain" class="text-xs font-semibold bg-white text-slate-700 border border-slate-300 py-2 px-4 rounded-lg hover:bg-slate-100 transition-all">Vista de Red (Louvain)</button>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs font-bold text-slate-700">Umbral Similitud Jaccard:</label>
+                        <input oninput="updateJaccardSlider(this.value)" type="range" min="1" max="10" value="5" class="w-24 accent-blue-800">
+                        <span id="jaccard-val" class="text-xs font-mono font-bold text-blue-900">0.5</span>
+                    </div>
+                </div>
+
+                <!-- Simulation Graph Area -->
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-4">
+                    <!-- Graph Canvas Simulator -->
+                    <div class="lg:col-span-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[380px]">
+                        <div>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+                                <span id="sim-status-title" class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Estado: Licitación Tradicional Plana</span>
+                                <span id="sim-status-badge" class="bg-slate-100 text-slate-600 text-[10px] font-bold py-1 px-2 rounded-full">Sin Alertas</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-4">Representación del mercado contractual del municipio. Los nodos representan proponentes que participan en las licitaciones públicas locales.</p>
+                        </div>
+
+                        <!-- Rendered Network / Tabular Area -->
+                        <div id="simulation-canvas-wrapper" class="flex-1 flex items-center justify-center border border-dashed border-slate-200 bg-slate-50 rounded-lg p-4 relative">
+                            <!-- Simulated Graph Nodes inside a relative wrapper to prevent any SVG usage -->
+                            <div id="tabular-sim-view" class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                                    <span class="text-xs font-bold text-slate-800 block">Empresa Alpha</span>
+                                    <span class="text-[9px] text-slate-400 block mt-1">NIT: 901.145-2</span>
+                                    <span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2 inline-block">Sin Sanción</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                                    <span class="text-xs font-bold text-slate-800 block">Constructores S.A.S</span>
+                                    <span class="text-[9px] text-slate-400 block mt-1">NIT: 800.560-1</span>
+                                    <span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2 inline-block">Sin Sanción</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                                    <span class="text-xs font-bold text-slate-800 block">Suministros del Norte</span>
+                                    <span class="text-[9px] text-slate-400 block mt-1">NIT: 902.778-5</span>
+                                    <span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2 inline-block">Sin Sanción</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                                    <span class="text-xs font-bold text-slate-800 block">Distribuidora Omega</span>
+                                    <span class="text-[9px] text-slate-400 block mt-1">NIT: 900.412-9</span>
+                                    <span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2 inline-block">Sin Sanción</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                                    <span class="text-xs font-bold text-slate-800 block">Consorcio Alianza</span>
+                                    <span class="text-[9px] text-slate-400 block mt-1">NIT: 890.334-0</span>
+                                    <span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2 inline-block">Sin Sanción</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                                    <span class="text-xs font-bold text-slate-800 block">Logística Integral</span>
+                                    <span class="text-[9px] text-slate-400 block mt-1">NIT: 901.889-4</span>
+                                    <span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full mt-2 inline-block">Sin Sanción</span>
+                                </div>
+                            </div>
+
+                            <div id="louvain-sim-view" class="hidden w-full flex flex-col gap-4">
+                                <div class="p-4 bg-red-50 border border-red-200 rounded-xl relative overflow-hidden pulse-warning">
+                                    <div class="absolute right-3 top-3 text-red-500 text-3xl font-extrabold opacity-30">⚠</div>
+                                    <span class="bg-red-600 text-white font-extrabold text-[9px] py-1 px-2.5 rounded-full">Comunidad Louvain #1 Detectada</span>
+                                    <h4 class="text-sm font-extrabold text-red-950 mt-2">Cartel de Nutrición Escolar</h4>
+                                    <p class="text-[11px] text-red-900 mt-1">Los nodos: <strong>Empresa Alpha</strong>, <strong>Suministros del Norte</strong> y <strong>Consorcio Alianza</strong> comparten el mismo número de teléfono y beneficiario final.</p>
+                                    <div class="mt-3 flex gap-2 border-t border-red-200/50 pt-3">
+                                        <div class="bg-white py-1.5 px-3 rounded text-[10px] text-red-950 border border-red-200 font-mono">Similitud Jaccard: <strong id="dynamic-jaccard-display">0.78</strong></div>
+                                        <div class="bg-white py-1.5 px-3 rounded text-[10px] text-red-950 border border-red-200 font-mono">Densidad Red: <strong>1.00 (Clique)</strong></div>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <span class="bg-slate-600 text-white font-extrabold text-[9px] py-1 px-2.5 rounded-full">Comunidad Louvain #2 Detectada</span>
+                                    <h4 class="text-sm font-extrabold text-slate-900 mt-2">Grupo de Logística Local</h4>
+                                    <p class="text-[11px] text-slate-600 mt-1">Nodos: <strong>Distribuidora Omega</strong> y <strong>Logística Integral</strong>. Comportamiento ordinario de mercado sin coincidencias societarias en RUES.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics / Case details -->
+                    <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-2">Métricas de Co-ocurrencia Relacional</h3>
+                            <p class="text-[11px] text-slate-500 leading-relaxed mb-4">El motor calcula en tiempo real la probabilidad estadística de que dos proponentes compitan legítimamente frente a la probabilidad de simulación contractual.</p>
+                            
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                        <span>Modulalidad General ($Q$)</span>
+                                        <span id="stat-modularity-display" class="font-mono text-slate-600">0.05 (Ruta Plana)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div id="bar-modularity-display" class="bg-slate-400 h-full transition-all" style="width: 5%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                        <span>Índice Co-ocurrencia Licitaciones</span>
+                                        <span id="stat-cooc-display" class="font-mono text-slate-600">Bajo (12%)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div id="bar-cooc-display" class="bg-slate-400 h-full transition-all" style="width: 12%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                                        <span>Riesgo Beneficiario Común (RUES)</span>
+                                        <span id="stat-rues-display" class="font-mono text-emerald-700">0% (Inactivo)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div id="bar-rues-display" class="bg-emerald-500 h-full transition-all" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-600 leading-relaxed">
+                            <span class="font-bold text-slate-800 block mb-1">💡 Guía del Simulador:</span>
+                            Cambie a la <strong>"Vista de Red (Louvain)"</strong> en los controles superiores para forzar al sistema a ejecutar el algoritmo de modularidad y develo el cartel de contratación en tiempo real.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANE 4: GOBERNANZA Y ÉTICA -->
+            <section id="pane-gobernanza" class="hidden fade-in space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <span class="text-blue-800">■</span> El Blindaje Normativo y Tratamiento de Datos
+                    </h2>
+                    <p class="text-sm text-slate-600 leading-relaxed max-w-4xl">
+                        Un Asesor de la DAE no solo entrega soluciones algorítmicas, sino que garantiza que cada línea de datos cumpla con el régimen de derecho público. Esta sección detalla los controles regulatorios codificados en la plataforma para asegurar que la evidencia sea auditable, auditable e impermeable a fallos judiciales o tutelas:
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <!-- Accordion 1: Habeas Data -->
+                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <button onclick="toggleGobernanzaAccordion(1)" class="w-full bg-slate-50 p-4 text-left font-bold text-sm text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                                <span>🔒 Ley 1581 de 2012 (Habeas Data)</span>
+                                <span id="gov-icon-1" class="text-slate-400 text-lg">＋</span>
+                            </button>
+                            <div id="gov-content-1" class="hidden p-4 text-xs text-slate-600 border-t border-slate-100 leading-relaxed space-y-2">
+                                <p><strong>Tratamiento de Datos de Terceros y Socios Comerciales:</strong></p>
+                                <p>Dado que el modelado relacional extrae nombres y cédulas del RUES, el sistema opera bajo la excepción del Artículo 10 de la Ley 1581, la cual exime del consentimiento previo cuando la información es requerida por dependencias del Estado para sus competencias legales.</p>
+                                <div class="bg-blue-50 p-3 rounded text-blue-900 border border-blue-100 font-semibold">
+                                    Control Técnico: Toda base de datos de socios es sometida a seudonimización mediante Hashing Salado (SHA-256) en el pipeline de ingesta, protegiendo la privacidad por diseño.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 2: CPACA -->
+                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <button onclick="toggleGobernanzaAccordion(2)" class="w-full bg-slate-50 p-4 text-left font-bold text-sm text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                                <span>📜 CPACA (Prohibición de la Arbitrariedad)</span>
+                                <span id="gov-icon-2" class="text-slate-400 text-lg">＋</span>
+                            </button>
+                            <div id="gov-content-2" class="hidden p-4 text-xs text-slate-600 border-t border-slate-100 leading-relaxed space-y-2">
+                                <p><strong>Motivación Explicable del Acto Administrativo:</strong></p>
+                                <p>La jurisprudencia del Consejo de Estado es clara: no se puede sancionar o motivar una actuación formal basados únicamente en el resultado de un algoritmo cerrado.</p>
+                                <div class="bg-blue-50 p-3 rounded text-blue-900 border border-blue-100 font-semibold">
+                                    Control Técnico: Los resultados del algoritmo de Louvain actúan como insumos preventivos y de priorización. La motivación jurídica descansa siempre en la contradicción de pruebas humanas y documentales.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 3: Ley 2094 -->
+                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <button onclick="toggleGobernanzaAccordion(3)" class="w-full bg-slate-50 p-4 text-left font-bold text-sm text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                                <span>⚖ Ley 2094 de 2021 (Debido Proceso)</span>
+                                <span id="gov-icon-3" class="text-slate-400 text-lg">＋</span>
+                            </button>
+                            <div id="gov-content-3" class="hidden p-4 text-xs text-slate-600 border-t border-slate-100 leading-relaxed space-y-2">
+                                <p><strong>Garantías Procesales de la Reforma Disciplinaria:</strong></p>
+                                <p>La separación del rol de Instrucción y Juzgamiento exige que el fallador esté libre de contaminación de sospechas preventivas tempranas o análisis predictivos.</p>
+                                <div class="bg-blue-50 p-3 rounded text-blue-900 border border-blue-100 font-semibold">
+                                    Control Técnico: Implementación de accesos basados en roles (RBAC) en el SIM, bloqueando de forma técnica la visualización de los reportes de redes al Procurador encargado de la fase de Juzgamiento.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 4: Interoperabilidad -->
+                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <button onclick="toggleGobernanzaAccordion(4)" class="w-full bg-slate-50 p-4 text-left font-bold text-sm text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                                <span>🌐 Interoperabilidad Segura (X-Road)</span>
+                                <span id="gov-icon-4" class="text-slate-400 text-lg">＋</span>
+                            </button>
+                            <div id="gov-content-4" class="hidden p-4 text-xs text-slate-600 border-t border-slate-100 leading-relaxed space-y-2">
+                                <p><strong>Intercambio de Información Confiable:</strong></p>
+                                <p>Evitar la fuga de datos o el acceso abusivo a sistemas de otras entidades vigiladas exige mecanismos de firma digital descentralizada y seguridad perimetral.</p>
+                                <div class="bg-blue-50 p-3 rounded text-blue-900 border border-blue-100 font-semibold">
+                                    Control Técnico: El canal de consulta de beneficiarios del RUES y registros mercantiles se realiza a través de Security Servers de X-Road bajo el estándar ENI del MinTIC.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANE 5: KPIS DE IMPACTO -->
+            <section id="pane-impacto" class="hidden fade-in space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <span class="text-blue-800">■</span> Rendimiento del Control de Inteligencia Relacional
+                    </h2>
+                    <p class="text-sm text-slate-600 leading-relaxed max-w-4xl">
+                        Basándonos en referentes de éxito en la región, como el sistema **ALICE** de Brasil (con ganancias de productividad de hasta 4 veces) y el modelo de priorización contractual **VigIA** en Colombia, proyectamos los KPIs estratégicos de la plataforma para consolidar un retorno de inversión social e institucional directo:
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm text-center">
+                            <div class="text-3xl mb-1">⏱</div>
+                            <div class="text-4xl font-extrabold text-blue-400">4x</div>
+                            <div class="text-xs uppercase tracking-wider font-bold text-slate-300 mt-1">Eficiencia del Screening</div>
+                            <p class="text-[10px] text-slate-400 mt-2">Detección automática de carteles reduciendo el tiempo de análisis manual de expedientes en las procuradurías territoriales.</p>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm text-center">
+                            <div class="text-3xl mb-1">🎯</div>
+                            <div class="text-4xl font-extrabold text-teal-400">88.8%</div>
+                            <div class="text-xs uppercase tracking-wider font-bold text-slate-300 mt-1">Tasa de Exhaustividad (Recall)</div>
+                            <p class="text-[10px] text-slate-400 mt-2">Capacidad del algoritmo para identificar comportamientos de simulación competitiva minimizando falsos negativos procesales.</p>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm text-center">
+                            <div class="text-3xl mb-1">🛡</div>
+                            <div class="text-4xl font-extrabold text-emerald-400">100%</div>
+                            <div class="text-xs uppercase tracking-wider font-bold text-slate-300 mt-1">Soberanía de Datos</div>
+                            <p class="text-[10px] text-slate-400 mt-2">Procesamiento y almacenamiento seguro dentro de la infraestructura on-premise de la Procuraduría.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-6 text-xs text-slate-700 leading-relaxed">
+                        <h3 class="font-extrabold text-slate-900 text-sm mb-1">Garantía del Rol de Asesor</h3>
+                        <p>La adopción de la Ciencia de Redes a través de la DAE no pretende reemplazar la labor de los procuradores disciplinarios ni suspender contratos autónomamente. Su única y valiosa función es la de priorizar y enfocar el ojo analítico allí donde el riesgo de colusión contractual está matemáticamente concentrado, optimizando la capacidad sancionatoria y preventiva del Ministerio Público de la Nación colombiana.</p>
+                    </div>
+                </div>
+            </section>
+
+    </main>
+
+    <script>
+        // State Management
+        const appState = {
+            currentView: 'desafio',
+            snaView: 'tabular',
+            jaccardThreshold: 0.5,
+            pipelineStepDetails: {
+                '1': {
+                    title: 'Fase 1: Ingesta OCDS (SECOP II)',
+                    content: '<p>Captura diaria automatizada de las licitaciones públicas y uniones temporales desde la API de Datos Abiertos de Colombia Compra Eficiente.</p><p><strong>Estandarización:</strong> Mapeamos los datos planos a los bloques del estándar OCDS, específicamente el bloque de Licitación (`tender`) y Adjudicación (`award`), aislando los NITs de consorciados para resolver la ambigüedad de las propuestas físicas.</p>',
+                    log: '> Ingestando contratos SECOP II... OK\n> Mapeo OCDS completado. 127,450 releases validados.'
+                },
+                '2': {
+                    title: 'Fase 2: Cruce de Beneficiarios RUES',
+                    content: '<p>Cruce e integración masiva con el Registro Único de Proponentes (RUP) y cámaras de comercio de Colombia (RUES) utilizando el canal de interoperabilidad del Estado colombiano.</p><p><strong>Extracción de Vínculos:</strong> Identificación automática de directivos, juntas, accionistas y domicilios fiscales comunes para revelar uniones de facto y parentescos ocultos entre proponentes rivales.</p>',
+                    log: '> Conectando servidor X-Road con RUES... OK\n> 4,200 tripletas societarias mapeadas y cargadas en Neo4j.'
+                },
+                '3': {
+                    title: 'Fase 3: Red Monopartita Proyectada',
+                    content: '<p>Transformación matemática del grafo bipartito (Entidad-Contrato-Proveedor) en un grafo de un solo modo (Proveedor-Proveedor).</p><p><strong>El peso relacional:</strong> Las aristas o conexiones adquieren mayor peso si dos empresas compitieron repetitivamente en la misma región, si el número de oferentes es inusualmente bajo, o si compartieron metadatos RUES.</p>',
+                    log: '> Calculando proyección monopartita... OK\n> Densidad promedio: 0.28. 40,000 aristas relacionales indexadas.'
+                },
+                '4': {
+                    title: 'Fase 4: Ejecución Iterativa Louvain',
+                    content: '<p>Cálculo de comunidades y detección de mallas sospechosas en Neo4j y Graph Data Science.</p><p><strong>Maximizando Modularidad:</strong> El algoritmo itera buscando agrupar a las empresas con máxima ganancia de Q. El operador recibe de forma automática las comunidades clasificadas según su índice de riesgo compuesto (CRI), facilitando la priorización del control de la PGN.</p>',
+                    log: '> Optimizando modularidad de Louvain... OK\n> Estabilizado en Q = 0.76. 18 comunidades críticas identificadas.'
+                }
+            }
+        };
+
+        // Navigation Switcher
+        function switchView(viewId) {
+            // Update Active Nav Classes
+            document.querySelectorAll('nav button, aside button').forEach(btn => {
+                btn.classList.remove('nav-btn-active');
+                btn.classList.add('hover:bg-slate-800', 'text-slate-300');
+            });
+            const targetNav = document.getElementById('nav-' + viewId);
+            if (targetNav) {
+                targetNav.classList.add('nav-btn-active');
+                targetNav.classList.remove('hover:bg-slate-800', 'text-slate-300');
+            }
+
+            // Hide all content blocks
+            ['desafio', 'arquitectura', 'simulador', 'gobernanza', 'impacto'].forEach(pane => {
+                const el = document.getElementById('pane-' + pane);
+                if (el) el.classList.add('hidden');
+            });
+
+            // Show active pane
+            const targetPane = document.getElementById('pane-' + viewId);
+            if (targetPane) targetPane.classList.remove('hidden');
+
+            appState.currentView = viewId;
+        }
+
+        // Pipeline step explorer
+        function showPipelinePhase(phaseId) {
+            document.querySelectorAll('.arch-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'border-blue-800', 'text-blue-950', 'font-bold');
+                btn.classList.add('bg-slate-50', 'border-transparent', 'text-slate-600', 'hover:bg-slate-100');
+            });
+
+            const activeBtn = document.getElementById('btn-pipe-' + phaseId);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-blue-50', 'border-blue-800', 'text-blue-950', 'font-bold');
+                activeBtn.classList.remove('bg-slate-50', 'border-transparent', 'text-slate-600', 'hover:bg-slate-100');
+            }
+
+            const data = appState.pipelineStepDetails[phaseId];
+            document.getElementById('pipe-title').innerText = data.title;
+            document.getElementById('pipe-content').innerHTML = data.content;
+            document.getElementById('pipe-terminal').innerHTML = `> Ejecutando... OK<br>${data.log}`;
+        }
+
+        // Simulador Interactive SNA Engine
+        function toggleSnaView(viewType) {
+            document.getElementById('btn-sim-tabular').classList.remove('nav-btn-active', 'bg-white', 'text-slate-700', 'border');
+            document.getElementById('btn-sim-louvain').classList.remove('nav-btn-active', 'bg-white', 'text-slate-700', 'border');
+
+            if (viewType === 'tabular') {
+                document.getElementById('btn-sim-tabular').classList.add('nav-btn-active');
+                document.getElementById('btn-sim-louvain').classList.add('bg-white', 'text-slate-700', 'border', 'border-slate-300');
+                
+                document.getElementById('tabular-sim-view').classList.remove('hidden');
+                document.getElementById('louvain-sim-view').classList.add('hidden');
+
+                // Update Stats
+                document.getElementById('sim-status-title').innerText = 'Estado: Licitación Tradicional Plana';
+                document.getElementById('sim-status-badge').className = 'bg-slate-100 text-slate-600 text-[10px] font-bold py-1 px-2 rounded-full';
+                document.getElementById('sim-status-badge').innerText = 'Sin Alertas';
+
+                document.getElementById('stat-modularity-display').innerText = '0.05 (Ruta Plana)';
+                document.getElementById('bar-modularity-display').style.width = '5%';
+                document.getElementById('bar-modularity-display').className = 'bg-slate-400 h-full transition-all';
+
+                document.getElementById('stat-cooc-display').innerText = 'Bajo (12%)';
+                document.getElementById('bar-cooc-display').style.width = '12%';
+
+                document.getElementById('stat-rues-display').innerText = '0% (Inactivo)';
+                document.getElementById('stat-rues-display').className = 'font-mono text-slate-500';
+                document.getElementById('bar-rues-display').style.width = '0%';
+            } else {
+                document.getElementById('btn-sim-louvain').classList.add('nav-btn-active');
+                document.getElementById('btn-sim-tabular').classList.add('bg-white', 'text-slate-700', 'border', 'border-slate-300');
+
+                document.getElementById('tabular-sim-view').classList.add('hidden');
+                document.getElementById('louvain-sim-view').classList.remove('hidden');
+
+                // Update Stats
+                document.getElementById('sim-status-title').innerText = 'Alerta: Comunidad de Colusión Identificada';
+                document.getElementById('sim-status-badge').className = 'bg-red-600 text-white text-[10px] font-bold py-1 px-2.5 rounded-full animate-bounce';
+                document.getElementById('sim-status-badge').innerText = 'Riesgo Crítico';
+
+                document.getElementById('stat-modularity-display').innerText = '0.78 (Colusión Alta)';
+                document.getElementById('bar-modularity-display').style.width = '78%';
+                document.getElementById('bar-modularity-display').className = 'bg-red-600 h-full transition-all';
+
+                document.getElementById('stat-cooc-display').innerText = 'Crítico (94%)';
+                document.getElementById('bar-cooc-display').style.width = '94%';
+
+                document.getElementById('stat-rues-display').innerText = '100% (Vínculo Directo)';
+                document.getElementById('stat-rues-display').className = 'font-mono text-red-600';
+                document.getElementById('bar-rues-display').style.width = '100%';
+            }
+            appState.snaView = viewType;
+        }
+
+        function updateJaccardSlider(val) {
+            const calculatedJaccard = (val / 10).toFixed(1);
+            document.getElementById('jaccard-val').innerText = calculatedJaccard;
+            
+            // Dynamically affect simulator stats if Louvain is active
+            if (appState.snaView === 'louvain') {
+                const modularityWeight = Math.min(99, Math.floor(calculatedJaccard * 100));
+                document.getElementById('stat-modularity-display').innerText = `${calculatedJaccard} (Similitud Jaccard)`;
+                document.getElementById('bar-modularity-display').style.width = `${modularityWeight}%`;
+                document.getElementById('dynamic-jaccard-display').innerText = calculatedJaccard;
+            }
+        }
+
+        // Accordion functionality for Governance
+        function toggleGobernanzaAccordion(id) {
+            const content = document.getElementById('gov-content-' + id);
+            const icon = document.getElementById('gov-icon-' + id);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.innerText = '－';
+            } else {
+                content.classList.add('hidden');
+                icon.innerText = '＋';
+            }
+        }
+
+        // Initialize Charts
+        window.addEventListener('DOMContentLoaded', () => {
+            // Chart 1: Desafío Bar Chart
+            const ctxTabular = document.getElementById('tabularVsNetworkChart').getContext('2d');
+            new Chart(ctxTabular, {
+                type: 'bar',
+                data: {
+                    labels: ['Nepotismo Socia', 'Fraccionamiento', 'Licitación Sastre', 'Simulación Concurrencia'],
+                    datasets: [
+                        {
+                            label: 'Auditoría Tabular Plana (%)',
+                            data: [15, 30, 22, 10],
+                            backgroundColor: '#94a3b8', // Slate 400
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Inteligencia de Redes Louvain (%)',
+                            data: [92, 88, 85, 96],
+                            backgroundColor: '#1e3a8a', // Blue 800
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Tasa Detección Efectiva (%)', font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // Chart 2: Radar Performance Chart
+            const ctxRadar = document.getElementById('performanceRadarChart').getContext('2d');
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Exhaustividad (Recall)', 'Precisión (Precision)', 'Latencia de Carga', 'Explicabilidad XAI', 'Resiliencia del Grafo'],
+                    datasets: [
+                        {
+                            label: 'Modelo Baseline',
+                            data: [65, 70, 85, 40, 60],
+                            backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                            borderColor: '#94a3b8',
+                            pointBackgroundColor: '#94a3b8'
+                        },
+                        {
+                            label: 'Modelo DAE PGN (Optimizado)',
+                            data: [88, 92, 90, 95, 96],
+                            backgroundColor: 'rgba(30, 58, 138, 0.2)',
+                            borderColor: '#1e3a8a',
+                            pointBackgroundColor: '#1e3a8a'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

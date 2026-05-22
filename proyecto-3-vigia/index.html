@@ -1,0 +1,634 @@
+<!-- Chosen Palette: Slate, Royal Blue, Sand, Light Slate -->
+<!-- Application Structure Plan: Diseñamos una aplicación web interactiva de una sola página (SPA) con un menú de navegación lateral fijo. La arquitectura está organizada en cinco vistas de negocio: 1. El Desafío Preventivo (Contextualización bajo el CONPES 3920 y el PEI), 2. Estadística Inferencial (Modelamiento y filtrado científico de anomalías), 3. Algoritmo Predictivo (Simulador dinámico de la matriz de confusión y optimización de umbrales), 4. Gobernanza y No-Coadministración (Garantías constitucionales y rol del Asesor), y 5. Tablero de Alertas Explorable (Entorno interactivo con explicabilidad local similar a valores SHAP para casos reales de SGR y PAE). Esta organización permite a los tomadores de decisiones de la PGN auditar tanto el rigor técnico de los modelos como su perfecta viabilidad constitucional y administrativa en Colombia. -->
+<!-- Visualization & Content Choices: 1. Gráfico de Barras de Rendimiento (Chart.js) -> Compara la efectividad preventiva (anomalías descubiertas por cada 1,000 contratos) de la supervisión predictiva basada en riesgos frente a la auditoría aleatoria ordinaria. 2. Gráfico de Curva de Rendimiento (Chart.js) -> Curva interactiva de Precisión y Exhaustividad (Precision-Recall) que demuestra el comportamiento estadístico de los modelos según la tasa de falsos positivos admitidos. 3. Simulador Interactivo de Matriz de Confusión (Motor Vanilla JS) -> Permite al usuario manipular el umbral de clasificación probabilística (de 0.1 a 0.9) recalculando dinámicamente Verdaderos Positivos, Falsos Positivos (costo de investigar), Falsos Negativos (fuga de riesgo) e Indicador F1. 4. Tablero Explorable de Casos con Explicabilidad Local (SNA/NLP) -> Panel donde al seleccionar un proyecto real (ej. PAE La Guajira, Regalías Casanare) se renderiza un desglose visual de variables ponderadas (adiciones de costo, plazos, concurrencia de oferentes) simulando aportes SHAP/LIME de manera determinista en HTML/CSS, cumpliendo con el estándar de explicabilidad (XAI) exigido por el CPACA. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAE PGN - Plataforma Predictiva VigIA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 320px;
+            overflow: hidden;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .nav-btn-active {
+            background-color: #1e3a8a; 
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.25);
+        }
+
+        .fade-in {
+            animation: fadeInFrame 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInFrame {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col lg:flex-row min-h-screen overflow-x-hidden bg-slate-50">
+
+    <!-- Sidebar Lateral de Navegación -->
+    <aside class="w-full lg:w-72 bg-slate-900 text-slate-300 flex flex-col lg:h-screen sticky top-0 z-50 shadow-2xl">
+        <div class="p-6 bg-slate-950 border-b border-slate-800 flex flex-col gap-1">
+            <div class="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span class="text-blue-500 text-2xl">⎘</span> VigIA PGN
+            </div>
+            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Dirección de Apoyo Estratégico</p>
+        </div>
+
+        <div class="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto w-full custom-scroll py-4 gap-2 px-3">
+            <button onclick="switchView('desafio')" id="nav-desafio" class="nav-btn-active flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚠</span> El Desafío Preventivo
+            </button>
+            <button onclick="switchView('estadistica')" id="nav-estadistica" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚗</span> Estadística Inferencial
+            </button>
+            <button onclick="switchView('algoritmo')" id="nav-algoritmo" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚙</span> Algoritmo Predictivo
+            </button>
+            <button onclick="switchView('gobernanza')" id="nav-gobernanza" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">⚖</span> Gobernanza y No-Coadministración
+            </button>
+            <button onclick="switchView('tableros')" id="nav-tableros" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap lg:whitespace-normal text-sm">
+                <span class="text-base">📊</span> Tablero de Alertas
+            </button>
+        </div>
+
+        <div class="mt-auto p-4 hidden lg:block border-t border-slate-800 bg-slate-950 text-slate-400">
+            <div class="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider">
+                <span>Estado</span>
+                <span class="text-emerald-400">Modelo Cargado</span>
+            </div>
+            <p class="text-[9px] text-slate-500 mt-2">Alineado al CONPES 3920: Aprovechamiento de Datos de Colombia.</p>
+        </div>
+    </aside>
+
+    <!-- Canvas Central de Interacción -->
+    <main class="flex-1 p-5 md:p-8 lg:p-10 max-h-screen overflow-y-auto custom-scroll w-full flex flex-col gap-6">
+        
+        <!-- HEADER GLOBAL -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-5">
+            <div>
+                <span class="text-xs font-bold text-blue-800 uppercase tracking-widest">Soporte a la Alta Dirección</span>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">VigIA: Sistema Predictivo de Ineficiencia y Desvío</h1>
+            </div>
+            <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                <span class="w-3 h-3 rounded-full bg-blue-600 block animate-pulse"></span>
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Misión Preventiva Activa</span>
+            </div>
+        </header>
+
+        <!-- PANE 1: EL DESAFÍO PREVENTIVO -->
+        <section id="pane-desafio" class="fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> Introducción: La Urgencia de la Alerta Temprana
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    La Dirección de Apoyo Estratégico (DAE) de la PGN ha estructurado la plataforma predictiva **VigIA** como respuesta directa al mandato del **CONPES 3920 (Política Nacional de Explotación de Datos - Big Data)** de Colombia. Tradicionalmente, la supervisión de la contratación pública en sectores sensibles como regalías (SGR) e infraestructura escolar (PAE) se ha ejercido de manera reactiva, es decir, cuando el detrimento patrimonial o el desvío de recursos ya se ha consumado. VigIA implementa un modelo de analítica de datos supervisado para clasificar de forma temprana procesos precontractuales según su nivel de probabilidad de ineficiencia (retrasos de entrega y sobrecostos presupuestales), permitiendo priorizar de manera científica las acciones de vigilancia superior preventiva de la entidad.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 flex gap-4 items-start">
+                        <div class="text-2xl text-blue-800">📊</div>
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm">Sinergia CONPES 3920</h3>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">El proyecto materializa la directriz gubernamental de transformar los datos abiertos del Estado (SECOP II) en activos de valor social y económico, utilizando técnicas de minería y aprendizaje automático para combatir el desperdicio pasivo de recursos.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 flex gap-4 items-start">
+                        <div class="text-2xl text-blue-800">🛡</div>
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm">Focalización Preventiva</h3>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Con más de 300,000 contratos anuales en Colombia, es operativamente inviable realizar auditorías presenciales exhaustivas. VigIA actúa como un filtro clasificador inteligente para asignar los inspectores humanos allí donde el riesgo de ineficiencia es probabilísticamente severo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization: Auditoria Tradicional vs Predictiva -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-extrabold text-slate-800 text-sm mb-1">Rendimiento Operativo de Detección de Anomalías</h3>
+                <p class="text-xs text-slate-500 mb-4">El gráfico compara el volumen promedio de ineficiencias presupuestales detectadas por cada 1,000 auditorías, contrastando la selección aleatoria tradicional contra la priorización predictiva mediante índices de riesgo en VigIA.</p>
+                <div class="chart-container">
+                    <canvas id="preventiveOversightChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANE 2: ESTADÍSTICA INFERENCIAL -->
+        <section id="pane-estadistica" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> Inferencia y Modelamiento Científico de Outliers
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Introducción: Para que un modelo predictivo sea robusto, debe alimentarse de datos que hayan sido sometidos a un estricto preprocesamiento de calidad estadística. En esta sección se describe cómo la DAE utiliza la estadística inferencial y pruebas de hipótesis para limpiar y caracterizar los datos de contratación. La plataforma no asume que las desviaciones presupuestales son fraudes inmediatos; utiliza distribuciones de probabilidad y algoritmos de detección de outliers (como Isolation Forests y Rangos Intercuartílicos robustos) para separar la ineficiencia estructural legítima del mercado de las anomalías estadísticamente significativas que exigen intervención.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div class="p-5 bg-slate-50 rounded-xl border border-slate-100 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-2">Preprocesamiento y Filtrado Outlier ($IQR$)</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                                Para cada tipo de contrato y sector geográfico, el sistema calcula el rango intercuartílico ($IQR = Q_3 - Q_1$). Las adiciones presupuestales de costo que superan la barrera superior ($Q_3 + 1.5 \times IQR$) se marcan inicialmente como valores atípicos. Esto nos permite aislar proyectos con sobrecostos extremos del comportamiento ordinario del mercado para entrenar el algoritmo predictivo supervisado sin ruido estadístico.
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-slate-200 font-mono text-[11px] text-blue-900">
+                            Límite Superior = Q3 + (1.5 * IQR)
+                        </div>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 rounded-xl border border-slate-100 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-2">Pruebas de Hipótesis y Significancia ($p \le 0.05$)</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                                Formulamos hipótesis nulas ($H_0$) para validar si el bajo número de oferentes en ciertas regiones se debe a escasez legítima de proveedores locales o a un direccionamiento intencional. Únicamente si el valor de probabilidad resultante ($p-value$) es menor al nivel de significancia de $0.05$, rechazamos la hipótesis de normalidad de mercado y habilitamos que el algoritmo catalogue el proceso como de alto riesgo relacional.
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-slate-200 font-mono text-[11px] text-blue-900">
+                            p-valor < 0.05 => Rechazo H0 (Anomalía Significativa)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outlier Chart Simulation -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-extrabold text-slate-800 text-sm mb-1">Distribución de Desviaciones de Costo en Contratos SGR</h3>
+                <p class="text-xs text-slate-500 mb-4">El gráfico de barras ilustra el histograma de frecuencias de adiciones de costo en contratos territoriales, demostrando la concentración en la cola derecha de la distribución que define los outliers prioritarios.</p>
+                <div class="chart-container">
+                    <canvas id="outlierDistributionChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANE 3: ALGORITMO PREDICTIVO (CONFUSION MATRIX SIMULATOR) -->
+        <section id="pane-algoritmo" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> Optimización de Modelos y el Dilema del Asesor
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Introducción: El entrenamiento de modelos supervisados (como Random Forest o XGBoost) en control público enfrenta un desafío metodológico crítico: la **optimización del umbral de decisión probabilístico**. Al clasificar si un contrato presentará ineficiencia, el modelo arroja una probabilidad de riesgo (de 0 a 1). Mover el umbral altera de forma drástica la **matriz de confusión**. En esta sección interactiva, usted puede simular cómo la selección del umbral de decisión afecta de forma directa las métricas de negocio de la PGN: un umbral muy bajo satura a los investigadores con falsas alarmas (falsos positivos), mientras que un umbral muy alto deja escapar desvíos multimillonarios de erario (falsos negativos).
+                </p>
+
+                <!-- Threshold Interactive Slider -->
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 mt-6">
+                    <div class="flex flex-col gap-1 w-full md:w-1/2">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Umbral de Decisión del Clasificador ($P_k$):</span>
+                        <input oninput="updateClassifierThreshold(this.value)" id="threshold-slider" type="range" min="10" max="90" value="50" class="w-full accent-blue-900 mt-2">
+                        <div class="flex justify-between text-[10px] text-slate-400 font-bold mt-1">
+                            <span>0.1 (Máxima Exhaustividad / Recall)</span>
+                            <span>0.9 (Máxima Precisión / Precision)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-500 font-semibold block uppercase">Umbral Actual</span>
+                        <span id="threshold-val" class="text-3xl font-extrabold text-blue-900">0.50</span>
+                    </div>
+                </div>
+
+                <!-- Confusion Matrix Grid and Metrics -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                    <!-- Matrix Card -->
+                    <div class="bg-slate-900 text-slate-200 p-5 rounded-xl border border-slate-800">
+                        <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Matriz de Confusión Proyectada (Prueba en 1,000 Contratos)</h3>
+                        
+                        <div class="grid grid-cols-2 gap-3 text-center text-xs">
+                            <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                                <span class="text-slate-400 block font-bold uppercase text-[9px]">Verdaderos Positivos</span>
+                                <span id="tp-val" class="text-xl font-bold text-emerald-400 mt-1 block">340</span>
+                                <span class="text-[10px] text-slate-400 block mt-1">(Alertas Reales Confirmadas)</span>
+                            </div>
+
+                            <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                                <span class="text-slate-400 block font-bold uppercase text-[9px]">Falsos Positivos</span>
+                                <span id="fp-val" class="text-xl font-bold text-amber-500 mt-1 block">85</span>
+                                <span class="text-[10px] text-slate-400 block mt-1">(Falsas Alarmas - Desperdicio Humano)</span>
+                            </div>
+
+                            <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                                <span class="text-slate-400 block font-bold uppercase text-[9px]">Falsos Negativos</span>
+                                <span id="fn-val" class="text-xl font-bold text-rose-500 mt-1 block">60</span>
+                                <span class="text-[10px] text-slate-400 block mt-1">(Desvíos Escapados - Fuga de Riesgo)</span>
+                            </div>
+
+                            <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                                <span class="text-slate-400 block font-bold uppercase text-[9px]">Verdaderos Negativos</span>
+                                <span id="tn-val" class="text-xl font-bold text-slate-400 mt-1 block">515</span>
+                                <span class="text-[10px] text-slate-400 block mt-1">(Contratos Correctos Aprobados)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Computed Metrics Card -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-3 uppercase tracking-wider">Métricas de Rendimiento Resultantes</h3>
+                            
+                            <div class="space-y-3 text-xs">
+                                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                                    <span class="font-bold text-slate-700">Precisión (Precision)</span>
+                                    <span id="metric-precision" class="font-mono font-extrabold text-slate-800">80.0%</span>
+                                </div>
+                                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                                    <span class="font-bold text-slate-700">Exhaustividad (Recall)</span>
+                                    <span id="metric-recall" class="font-mono font-extrabold text-slate-800">85.0%</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-slate-700">F1-Score (Equilibrio)</span>
+                                    <span id="metric-f1" class="font-mono font-extrabold text-blue-900">82.4%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-blue-50 rounded border border-blue-100 text-[11px] text-blue-900 leading-relaxed font-semibold">
+                            💡 <strong>Estrategia de Asesor:</strong> Para la función preventiva de la PGN, priorizamos una exhaustividad (*recall*) alta para evitar falsos negativos en el PAE o Regalías, asumiendo un costo moderado en falsos positivos auditables.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANE 4: GOBERNANZA Y NO-COADMINISTRACIÓN -->
+        <section id="pane-gobernanza" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> El Blindaje Constitucional: El Toque del Asesor
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Introducción: El diseño de un algoritmo de alertas de contratación pública en un órgano de control requiere una comprensión clara de los límites constitucionales. En este módulo se analizan las restricciones jurídicas de la PGN. La Procuraduría no puede coadministrar; no tiene facultades para bloquear, suspender o emitir vetos automáticos sobre las licitaciones de los entes territoriales basándose en modelos matemáticos. A continuación, se detallan las directrices de gobernanza técnica codificadas para cumplir rigurosamente con los mandatos de la Constitución y el CPACA en Colombia:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div class="p-5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-2">🚫 Prohibición de Coadministración</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                                De acuerdo con la doctrina constitucional colombiana, la función preventiva de la PGN se ejerce de forma paralela y no vinculante, sin desplazar la competencia ordinaria del administrador. El sistema de alertas no bloquea el proceso contractual en el SECOP II de forma automatizada; reporta la alerta como un insumo interno para los procuradores delegados territoriales.
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded border border-dashed border-slate-300 text-[10px] text-slate-500 font-bold uppercase">
+                            Estatus: Alerta Preventiva No Vinculante (Human-in-the-loop)
+                        </div>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-2">⚖ Motivación Explicable (CPACA)</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                                Según el CPACA (Ley 1437 de 2011), cualquier acción o auto de indagación formal que emita el Ministerio Público debe estar fundamentado en hechos objetivos y normas. El dictamen numérico probabilístico de un algoritmo de XGBoost o Random Forest no es motivación legal suficiente. El modelo de la DAE expone de forma explícita las características que originaron la alerta para que el analista las verifique.
+                            </p>
+                        </div>
+                        <div class="bg-white p-3 rounded border border-dashed border-slate-300 text-[10px] text-slate-500 font-bold uppercase">
+                            Estatus: Explicabilidad Local SHAP Integrada en Expediente
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANE 5: TABLERO DE ALERTAS EXPLORABLE -->
+        <section id="pane-tableros" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="text-blue-800">■</span> Vigilancia en Tiempo Real: Casos Explorables
+                </h2>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Introducción: El Tablero de Alertas Tempranas es el entorno transaccional interactivo diseñado por la DAE para que la alta dirección visualice y priorice las alertas generadas por VigIA. A continuación, se presenta un panel con procesos precontractuales de alto riesgo detectados de forma predictiva. Haga clic en cualquiera de ellos para ver la explicabilidad local del modelo (*SHAP/Feature Importance*), la cual traduce el score probabilístico en variables objetivas de contratación que el operador humano puede auditar, respetando así el principio de contradicción.
+                </p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
+                    <!-- Lista de casos -->
+                    <div class="lg:col-span-2 flex flex-col gap-2 custom-scroll max-h-[400px] overflow-y-auto pr-1">
+                        <button onclick="showAlertCase('case1')" id="btn-case-1" class="case-btn text-left p-4 rounded-xl bg-blue-50 border-l-4 border-blue-800 transition-all flex flex-col justify-between">
+                            <span class="bg-blue-600 text-white font-extrabold text-[9px] py-0.5 px-2 rounded-full uppercase self-start">PAE (Alimentación)</span>
+                            <span class="text-xs font-extrabold text-slate-900 mt-2 block">Municipio A - Licitación PAE 2026</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">Cuantía: $1,250M | Alerta: <strong>Riesgo Crítico (92%)</strong></span>
+                        </button>
+
+                        <button onclick="showAlertCase('case2')" id="btn-case-2" class="case-btn text-left p-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-all flex flex-col justify-between">
+                            <span class="bg-indigo-600 text-white font-extrabold text-[9px] py-0.5 px-2 rounded-full uppercase self-start">SGR (Regalías)</span>
+                            <span class="text-xs font-bold text-slate-800 mt-2 block">Vías Terciarias - Casanare</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">Cuantía: $4,800M | Alerta: <strong>Riesgo Alto (78%)</strong></span>
+                        </button>
+
+                        <button onclick="showAlertCase('case3')" id="btn-case-3" class="case-btn text-left p-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-all flex flex-col justify-between">
+                            <span class="bg-teal-600 text-white font-extrabold text-[9px] py-0.5 px-2 rounded-full uppercase self-start">Infraestructura</span>
+                            <span class="text-xs font-bold text-slate-800 mt-2 block">Mejoramiento Colegio - Municipio B</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">Cuantía: $820M | Alerta: <strong>Riesgo Moderado (45%)</strong></span>
+                        </button>
+                    </div>
+
+                    <!-- Explicabilidad del caso seleccionado -->
+                    <div class="lg:col-span-3 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[350px]">
+                        <div>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
+                                <h3 id="case-selected-title" class="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Desglose de Alerta: PAE Municipio A</h3>
+                                <span id="case-selected-badge" class="bg-red-600 text-white text-[10px] font-bold py-1 px-2.5 rounded-full">Score: 92%</span>
+                            </div>
+                            
+                            <p class="text-xs text-slate-600 mb-4 leading-relaxed">
+                                El modelo predictivo ha catalogado este contrato en riesgo crítico basándose en el análisis conjunto de su comportamiento precontractual frente a la línea base histórica regional.
+                            </p>
+
+                            <!-- SHAP-like Bar Chart in HTML/CSS -->
+                            <div class="space-y-3 text-xs" id="shap-bars-container">
+                                <div>
+                                    <div class="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                                        <span>Adiciones Presupuestales Previas del Proponente</span>
+                                        <span class="text-red-700 font-mono font-bold">+34% (Riesgo Alto)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div class="bg-red-600 h-full transition-all" style="width: 75%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                                        <span>Días de Publicación de Pliegos en SECOP II</span>
+                                        <span class="text-red-600 font-mono">+25% (Inusual)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div class="bg-red-500 h-full transition-all" style="width: 55%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                                        <span>Número Probable de Oferentes</span>
+                                        <span class="text-teal-700 font-mono">-10% (Buen nivel)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div class="bg-teal-500 h-full transition-all" style="width: 25%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Criterio del analista preventivo -->
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">ID Expediente: PGN-PREV-2026-A24</span>
+                            <button class="bg-blue-900 text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-blue-800 transition-all">Asignar a Investigador Preventivo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // State Management
+        const appState = {
+            currentView: 'desafio',
+            threshold: 0.50,
+            casesData: {
+                case1: {
+                    title: 'Desglose de Alerta: PAE Municipio A',
+                    badge: 'Score: 92%',
+                    badgeClass: 'bg-red-600 text-white text-[10px] font-bold py-1 px-2.5 rounded-full',
+                    desc: 'El modelo predictivo de XGBoost ha clasificado este proceso precontractual del Programa de Alimentación Escolar (PAE) en nivel crítico. Los datos históricos demuestran una alta probabilidad de adición presupuestal anormal y retrasos de entrega de raciones.',
+                    id: 'ID Expediente: PGN-PREV-2026-A24',
+                    shap: [
+                        { name: 'Adiciones Presupuestales Previas del Proponente', val: '+34% (Riesgo Alto)', width: '75%', color: 'bg-red-600', textClass: 'text-red-700 font-mono font-bold' },
+                        { name: 'Días de Publicación de Pliegos en SECOP II', val: '+25% (Inusual)', width: '55%', color: 'bg-red-500', textClass: 'text-red-600 font-mono' },
+                        { name: 'Número Probable de Oferentes', val: '-10% (Buen nivel)', width: '25%', color: 'bg-teal-500', textClass: 'text-teal-700 font-mono' }
+                    ]
+                },
+                case2: {
+                    title: 'Desglose de Alerta: Vías Terciarias - Casanare',
+                    badge: 'Score: 78%',
+                    badgeClass: 'bg-amber-600 text-white text-[10px] font-bold py-1 px-2.5 rounded-full',
+                    desc: 'Alerta predictiva disparada sobre recursos del Sistema General de Regalías (SGR) para infraestructura vial. Se detectaron anomalías significativas en el establecimiento del pliego de condiciones técnicas exigido.',
+                    id: 'ID Expediente: PGN-PREV-2026-S44',
+                    shap: [
+                        { name: 'Concentración Histórica del Proponente en el Departamento', val: '+45% (Crítico)', width: '85%', color: 'bg-red-600', textClass: 'text-red-700 font-mono font-bold' },
+                        { name: 'Número de Oferentes Habilitados', val: '+15% (Mejora moderada)', width: '35%', color: 'bg-red-400', textClass: 'text-red-600 font-mono' },
+                        { name: 'Precio de Oferta Estimado', val: '-18% (Subsanado)', width: '40%', color: 'bg-teal-500', textClass: 'text-teal-700 font-mono' }
+                    ]
+                },
+                case3: {
+                    title: 'Desglose de Alerta: Mejoramiento Colegio - Municipio B',
+                    badge: 'Score: 45%',
+                    badgeClass: 'bg-yellow-500 text-white text-[10px] font-bold py-1 px-2.5 rounded-full',
+                    desc: 'Alerta de riesgo moderado. Proceso estándar de infraestructura escolar. El modelo predice desviaciones de tiempo menores en el hito de liquidación, pero sin señales de direccionamiento o desvío patrimonial.',
+                    id: 'ID Expediente: PGN-PREV-2026-I09',
+                    shap: [
+                        { name: 'Hitos de Entrega en Calendario Contractual', val: '+18% (Riesgo Leve)', width: '40%', color: 'bg-amber-500', textClass: 'text-amber-700 font-mono font-bold' },
+                        { name: 'Experiencia Previa Certificada del Contratista', val: '-22% (Fortaleza)', width: '45%', color: 'bg-teal-500', textClass: 'text-teal-700 font-mono' },
+                        { name: 'Concurrencia de Mercado', val: '-12% (Competitivo)', width: '30%', color: 'bg-teal-500', textClass: 'text-teal-700 font-mono' }
+                    ]
+                }
+            }
+        };
+
+        // Navigation panes
+        function switchView(viewId) {
+            document.querySelectorAll('nav button, aside button').forEach(btn => {
+                btn.classList.remove('nav-btn-active');
+                btn.classList.add('hover:bg-slate-800', 'text-slate-300');
+            });
+            const targetNav = document.getElementById('nav-' + viewId);
+            if (targetNav) {
+                targetNav.classList.add('nav-btn-active');
+                targetNav.classList.remove('hover:bg-slate-800', 'text-slate-300');
+            }
+
+            ['desafio', 'estadistica', 'algoritmo', 'gobernanza', 'tableros'].forEach(pane => {
+                const el = document.getElementById('pane-' + pane);
+                if (el) el.classList.add('hidden');
+            });
+
+            const targetPane = document.getElementById('pane-' + viewId);
+            if (targetPane) targetPane.classList.remove('hidden');
+
+            appState.currentView = viewId;
+        }
+
+        // Confusion Matrix Interactive recalculator (Vanilla JS Engine)
+        function updateClassifierThreshold(val) {
+            const threshold = (val / 100).toFixed(2);
+            document.getElementById('threshold-val').innerText = threshold;
+            appState.threshold = parseFloat(threshold);
+
+            // Recalculate matrix based on mathematical model (prueba de 1000 contratos)
+            // True positives decrease and False Negatives increase as threshold goes up
+            // False positives decrease and True Negatives increase as threshold goes up
+            let tp = Math.floor(400 * (1 - threshold * 0.8));
+            let fn = 400 - tp;
+            let fp = Math.floor(600 * (1 - threshold) * 0.5);
+            let tn = 600 - fp;
+
+            document.getElementById('tp-val').innerText = tp;
+            document.getElementById('fp-val').innerText = fp;
+            document.getElementById('fn-val').innerText = fn;
+            document.getElementById('tn-val').innerText = tn;
+
+            // Recalculate precision and recall metrics
+            let precision = (tp / (tp + fp) * 100).toFixed(1);
+            let recall = (tp / (tp + fn) * 100).toFixed(1);
+            let f1 = (2 * (precision * recall) / (parseFloat(precision) + parseFloat(recall))).toFixed(1);
+
+            document.getElementById('metric-precision').innerText = `${precision}%`;
+            document.getElementById('metric-recall').innerText = `${recall}%`;
+            document.getElementById('metric-f1').innerText = `${f1}%`;
+        }
+
+        // Case switcher with Local Explainability (SHAP Simulation)
+        function showAlertCase(caseId) {
+            document.querySelectorAll('.case-btn').forEach(btn => {
+                btn.className = 'case-btn text-left p-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-all flex flex-col justify-between';
+            });
+
+            let activeBtnId = 'btn-case-1';
+            let data = appState.casesData.case1;
+
+            if (caseId === 'case2') {
+                activeBtnId = 'btn-case-2';
+                data = appState.casesData.case2;
+            } else if (caseId === 'case3') {
+                activeBtnId = 'btn-case-3';
+                data = appState.casesData.case3;
+            }
+
+            const activeBtn = document.getElementById(activeBtnId);
+            activeBtn.className = 'case-btn text-left p-4 rounded-xl bg-blue-50 border-l-4 border-blue-800 transition-all flex flex-col justify-between';
+
+            // Update details
+            document.getElementById('case-selected-title').innerText = data.title;
+            document.getElementById('case-selected-badge').className = data.badgeClass;
+            document.getElementById('case-selected-badge').innerText = data.badge;
+            document.querySelector('#pane-tableros p.text-xs').innerText = data.desc;
+            document.querySelector('#pane-tableros span.text-\\[10px\\]').innerText = data.id;
+
+            // Render SHAP Bars
+            const container = document.getElementById('shap-bars-container');
+            container.innerHTML = data.shap.map(s => `
+                <div class="fade-in">
+                    <div class="flex justify-between text-[11px] font-bold text-slate-700 mb-1">
+                        <span>${s.name}</span>
+                        <span class="${s.textClass}">${s.val}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div class="${s.color} h-full transition-all" style="width: ${s.width}"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize Charts on Dom Ready
+        window.addEventListener('DOMContentLoaded', () => {
+            // Chart 1: Bar Chart (Compare)
+            const ctxOversight = document.getElementById('preventiveOversightChart').getContext('2d');
+            new Chart(ctxOversight, {
+                type: 'bar',
+                data: {
+                    labels: ['SGR (Regalías)', 'PAE (Alimentación)', 'Infraestructura', 'Suministros Básicos'],
+                    datasets: [
+                        {
+                            label: 'Oversight Tradicional Aleatorio',
+                            data: [42, 30, 25, 18],
+                            backgroundColor: '#94a3b8',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Priorización Predictiva VigIA',
+                            data: [195, 145, 110, 80],
+                            backgroundColor: '#1e3a8a',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Anomalías Detectadas (Por cada 1,000 auditorías)', font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // Chart 2: Histogram Distribution
+            const ctxOutlier = document.getElementById('outlierDistributionChart').getContext('2d');
+            new Chart(ctxOutlier, {
+                type: 'bar',
+                data: {
+                    labels: ['0% - 10%', '11% - 20%', '21% - 30%', '31% - 40%', '41% - 50%', '>50% (Outliers Prioritarios)'],
+                    datasets: [{
+                        label: 'Frecuencia de Contratos',
+                        data: [520, 280, 110, 55, 25, 10],
+                        backgroundColor: function(context) {
+                            const index = context.dataIndex;
+                            return index === 5 ? '#991b1b' : '#3b82f6';
+                        },
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Número de Contratos Evaluados', font: { size: 10 } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Tasa de Adición Presupuestal (%)', font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphRAG PGN - Inteligencia Relacional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        /* Requisito Obligatorio: Contenedores de Gráficos */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        /* Custom Scrollbar for inner elements */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .nav-active {
+            background-color: #1e3a8a; /* bg-blue-900 */
+            color: white;
+            font-weight: 600;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .agent-node {
+            transition: all 0.3s ease;
+        }
+        .agent-node:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen overflow-x-hidden">
+
+    <!-- Chosen Palette: Slate (Neutrals), Deep Blue (Primary), Cyan/Teal (Accents), White (Background) -->
+    <!-- Application Structure Plan: SPA dashboard with a fixed lateral navigation. Divided into 4 logical views: 1. El Desafío (Context & Problem), 2. Arquitectura (Interactive technical flow), 3. Blindaje Jurídico (Governance rules mapping), 4. Impacto (Strategic KPIs). This non-linear structure allows the Alta Dirección to immediately grasp the value proposition (Impact) or dive deep into the technical/legal specifics as needed, avoiding a linear document read. -->
+    <!-- Visualization & Content Choices: 1. Bar Chart (Chart.js) -> Compare manual vs automated processing times -> Quantify the 'Backlog' problem. 2. Interactive HTML Diagram -> Explain the 5 phases of GraphRAG -> Simplify complex technical flows into clickable steps. 3. Radar Chart (Chart.js) -> Compare generic LLMs vs GraphRAG -> Visually justify the technical choice across dimensions like Security and Explainability. 4. Interactive CSS Grid Cards -> Map the 4 legal pillars -> Clearly demonstrate compliance. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Sidebar Navigation -->
+    <nav class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col md:h-screen sticky top-0 z-50 shadow-xl">
+        <div class="p-6 bg-slate-950 border-b border-slate-800">
+            <div class="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+                <span class="text-blue-500 text-3xl">⎘</span> DAE PGN
+            </div>
+            <p class="text-xs text-slate-400 mt-2 uppercase tracking-wider font-semibold">Inteligencia Relacional</p>
+        </div>
+        <div class="flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto w-full custom-scroll py-4 gap-2 px-3">
+            <button onclick="navigate('desafio')" id="nav-desafio" class="nav-active flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg transition-colors whitespace-nowrap md:whitespace-normal">
+                <span class="text-lg">⚠</span> El Desafío
+            </button>
+            <button onclick="navigate('arquitectura')" id="nav-arquitectura" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap md:whitespace-normal">
+                <span class="text-lg">⚙</span> Arquitectura Técnica
+            </button>
+            <button onclick="navigate('gobernanza')" id="nav-gobernanza" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap md:whitespace-normal">
+                <span class="text-lg">⚖</span> Blindaje Jurídico
+            </button>
+            <button onclick="navigate('impacto')" id="nav-impacto" class="flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap md:whitespace-normal">
+                <span class="text-lg">📈</span> Impacto Misional
+            </button>
+        </div>
+        <div class="mt-auto p-4 hidden md:block border-t border-slate-800">
+            <p class="text-xs text-slate-500">Proyecto 1: GraphRAG</p>
+            <p class="text-xs text-slate-500">Soporte a la Alta Dirección</p>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto custom-scroll w-full">
+        
+        <!-- HEADER -->
+        <header class="mb-10 fade-in">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">Arquitectura GraphRAG para Expedientes Disciplinarios</h1>
+            <p class="text-lg text-slate-600 mt-3 max-w-3xl border-l-4 border-blue-600 pl-4 py-1 bg-white shadow-sm p-3 rounded-r-md">Sistema neuro-simbólico de auditoría semántica y soporte a la decisión, diseñado bajo los principios de legalidad, explicabilidad y soberanía de datos del Estado Colombiano.</p>
+        </header>
+
+        <!-- SECTION 1: EL DESAFÍO -->
+        <section id="sec-desafio" class="fade-in space-y-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <span class="text-blue-600">■</span> El Dolor Institucional
+                </h2>
+                <p class="text-slate-600 mb-4 leading-relaxed">
+                    Esta sección analiza el cuello de botella crítico en el <strong>Sistema de Información Misional (SIM)</strong>. Actualmente, la PGN enfrenta un desbordamiento de información no estructurada (PDFs, testimonios, quejas). La incapacidad de procesar semánticamente estos volúmenes genera retrasos, riesgo de caducidad y fragmentación jurisprudencial. Exploramos aquí por qué los métodos manuales y la IA comercial genérica no son suficientes.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                    <!-- Cards de problemas -->
+                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="text-rose-500 text-3xl mb-3">◷</div>
+                        <h3 class="font-bold text-slate-800 mb-2">Backlog Investigativo</h3>
+                        <p class="text-sm text-slate-600">Procesamiento manual de miles de folios por expediente impide la búsqueda conceptual, elevando el riesgo de prescripción disciplinaria.</p>
+                    </div>
+                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="text-amber-500 text-3xl mb-3">⎚</div>
+                        <h3 class="font-bold text-slate-800 mb-2">Incoherencia Interna</h3>
+                        <p class="text-sm text-slate-600">Fragmentación de datos dificulta mapear si una conducta analizada en territorio ya fue resuelta bajo otra interpretación en sede central.</p>
+                    </div>
+                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="text-red-500 text-3xl mb-3">⚠</div>
+                        <h3 class="font-bold text-slate-800 mb-2">Riesgo IA Comercial</h3>
+                        <p class="text-sm text-slate-600">El uso de LLMs en la nube pública viola el Habeas Data (Ley 1581) y la reserva procesal, además de introducir graves alucinaciones legales.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization: Contexto del Problema -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Comparativa de Esfuerzo Cognitivo: Proceso Manual vs. GraphRAG</h3>
+                <p class="text-sm text-slate-500 mb-6">El gráfico ilustra la reducción drástica proyectada en horas-hombre invertidas en las fases de un proceso disciplinario promedio, justificando la necesidad técnica de la herramienta.</p>
+                
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: ARQUITECTURA TÉCNICA -->
+        <section id="sec-arquitectura" class="hidden fade-in space-y-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <span class="text-blue-600">■</span> La Frontera Tecnológica Neuro-Simbólica
+                </h2>
+                <p class="text-slate-600 mb-6 leading-relaxed">
+                    Esta sección desglosa la solución técnica: un sistema <strong>GraphRAG</strong> (Retrieval-Augmented Generation con Grafos). Superamos las limitaciones de los LLMs tradicionales al fusionar su capacidad lingüística con la exactitud determinista de una base de datos de grafos. Interactúe con las fases a continuación para entender el flujo de datos desde el SIM hasta el tablero del operador disciplinario.
+                </p>
+
+                <!-- Interactive Architecture Flow -->
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Steps Menu -->
+                    <div class="flex flex-col gap-2 w-full lg:w-1/3">
+                        <button onclick="showTechPhase('A')" id="btn-fase-A" class="tech-btn text-left p-3 rounded bg-blue-50 border-l-4 border-blue-600 font-semibold text-blue-900 transition-all">Fase A: Ingesta y Normalización</button>
+                        <button onclick="showTechPhase('B')" id="btn-fase-B" class="tech-btn text-left p-3 rounded bg-slate-50 border-l-4 border-transparent text-slate-600 hover:bg-slate-100 transition-all">Fase B: NER Legal (Hechos y Normas)</button>
+                        <button onclick="showTechPhase('C')" id="btn-fase-C" class="tech-btn text-left p-3 rounded bg-slate-50 border-l-4 border-transparent text-slate-600 hover:bg-slate-100 transition-all">Fase C: Grafo de Conocimiento</button>
+                        <button onclick="showTechPhase('D')" id="btn-fase-D" class="tech-btn text-left p-3 rounded bg-slate-50 border-l-4 border-transparent text-slate-600 hover:bg-slate-100 transition-all">Fase D: Multi-Hop Retrieval</button>
+                        <button onclick="showTechPhase('E')" id="btn-fase-E" class="tech-btn text-left p-3 rounded bg-slate-50 border-l-4 border-transparent text-slate-600 hover:bg-slate-100 transition-all">Fase E: Orquestación Agéntica</button>
+                    </div>
+                    
+                    <!-- Steps Details -->
+                    <div class="w-full lg:w-2/3 bg-slate-900 rounded-xl p-6 text-slate-200 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚙</div>
+                        <h3 id="phase-title" class="text-xl font-bold text-white mb-3">Fase A: Ingesta Multimodal (Pipeline ETL)</h3>
+                        <div id="phase-content" class="space-y-4 text-sm leading-relaxed">
+                            <p>Los documentos del <strong>SIM</strong> son procesados mediante un pipeline de extracción avanzado:</p>
+                            <ul class="list-none space-y-2">
+                                <li class="flex gap-2"><span class="text-blue-400">▹</span> <strong>OCR Avanzado (LayoutLMv3):</strong> Extracción de texto de PDFs conservando la jerarquía de tablas y firmas.</li>
+                                <li class="flex gap-2"><span class="text-blue-400">▹</span> <strong>Chunking Semántico:</strong> Segmentación dinámica basada en la estructura procesal (autos, testimonios) en lugar de cortes arbitrarios por caracteres.</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-slate-800 rounded border border-slate-700 font-mono text-xs text-green-400">
+                                > [INFO] Inicializando ingesta de 5,000 folios...<br>
+                                > [SUCCESS] Layout conservado. Fragmentación completada.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization: LLM vs GraphRAG -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Evaluación de Capacidades del Sistema</h3>
+                    <p class="text-sm text-slate-500 mb-6">Comparativa de por qué un LLM genérico falla en el entorno PGN y cómo GraphRAG soluciona la necesidad de interpretabilidad.</p>
+                    <div class="chart-container !h-[300px]">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">La Red Agéntica (LangGraph)</h3>
+                    <p class="text-sm text-slate-600 mb-6">En la Fase E, el sistema no usa un solo bot, sino un flujo de trabajo acotado con agentes especializados que se supervisan entre sí para evitar alucinaciones.</p>
+                    
+                    <!-- Diagrama Estructurado en HTML/Tailwind -->
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="agent-node bg-blue-900 text-white text-xs font-bold py-2 px-4 rounded w-48 text-center shadow">Agente Orquestador</div>
+                        <div class="text-slate-400">⬇</div>
+                        <div class="flex gap-4 w-full justify-center">
+                            <div class="agent-node bg-cyan-700 text-white text-xs py-2 px-3 rounded w-32 text-center shadow">Agente Vectorial<br><span class="font-normal opacity-75">(Búsqueda RAG)</span></div>
+                            <div class="agent-node bg-teal-700 text-white text-xs py-2 px-3 rounded w-32 text-center shadow">Agente de Grafo<br><span class="font-normal opacity-75">(Consultas Cypher)</span></div>
+                        </div>
+                        <div class="text-slate-400">⬇</div>
+                        <div class="agent-node bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded w-56 text-center shadow border-2 border-amber-300">
+                            Agente de Garantías (XAI)
+                            <div class="text-[10px] font-normal mt-1 border-t border-amber-500 pt-1">Verifica Ley 1952 / CPACA</div>
+                        </div>
+                        <div class="text-slate-400">⬇</div>
+                        <div class="agent-node bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded w-48 text-center shadow">Agente Redactor<br><span class="font-normal opacity-75">(Resumen Explicable)</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: BLINDAJE JURÍDICO -->
+        <section id="sec-gobernanza" class="hidden fade-in space-y-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <span class="text-blue-600">■</span> Gobernanza y Defensa Jurídica
+                </h2>
+                <p class="text-slate-600 mb-6 leading-relaxed">
+                    Un Asesor de la DAE sabe que la mejor tecnología es inútil si vicia de nulidad un proceso disciplinario. Esta sección demuestra cómo la arquitectura está inherentemente blindada contra recursos de tutela y demandas, mapeando las características técnicas directamente a las obligaciones constitucionales y legales del Estado colombiano. Haga clic en cada pilar para ver el control técnico aplicado.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Ley 1437 -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleLegal('legal1')" class="w-full bg-slate-50 p-4 text-left font-bold text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                            <span>⚖ Ley 1437 de 2011 (CPACA)</span>
+                            <span id="icon-legal1" class="text-slate-400 text-xl">＋</span>
+                        </button>
+                        <div id="content-legal1" class="hidden p-4 text-sm text-slate-600 border-t border-slate-100 bg-white">
+                            <p class="font-semibold text-slate-800 mb-1">Principio de Legalidad y Motivación</p>
+                            <p class="mb-3">Los actos administrativos no pueden basarse en "cajas negras" algorítmicas. Requieren fundamentación fáctica y jurídica.</p>
+                            <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                                <span class="font-bold text-blue-800 text-xs uppercase">Blindaje Técnico (XAI)</span>
+                                <p class="mt-1">Implementación de Trazabilidad de Evidencia. La IA renderiza el subgrafo y enlaza directamente al folio documental exacto. El sistema opera como soporte <em>Human-in-the-loop</em>, nunca dictamina decisiones autónomas.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ley 2094 -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleLegal('legal2')" class="w-full bg-slate-50 p-4 text-left font-bold text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                            <span>🛡 Ley 2094 de 2021 (Ref. Disciplinaria)</span>
+                            <span id="icon-legal2" class="text-slate-400 text-xl">＋</span>
+                        </button>
+                        <div id="content-legal2" class="hidden p-4 text-sm text-slate-600 border-t border-slate-100 bg-white">
+                            <p class="font-semibold text-slate-800 mb-1">Separación de Instrucción y Juzgamiento</p>
+                            <p class="mb-3">El operador que juzga no puede estar contaminado por las hipótesis o sesgos generados durante la etapa de instrucción.</p>
+                            <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                                <span class="font-bold text-blue-800 text-xs uppercase">Blindaje Técnico (RBAC)</span>
+                                <p class="mt-1">Aislamiento lógico en las bases de datos (Neo4j/pgvector) mediante Control de Acceso Basado en Roles. El fallador tiene bloqueo técnico para ver logs de IA de la fase instructiva.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ley 1581 -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleLegal('legal3')" class="w-full bg-slate-50 p-4 text-left font-bold text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                            <span>🔒 Ley 1581 de 2012 (Habeas Data)</span>
+                            <span id="icon-legal3" class="text-slate-400 text-xl">＋</span>
+                        </button>
+                        <div id="content-legal3" class="hidden p-4 text-sm text-slate-600 border-t border-slate-100 bg-white">
+                            <p class="font-semibold text-slate-800 mb-1">Protección de Datos Personales</p>
+                            <p class="mb-3">Procesar datos de familiares o contratistas particulares requiere autorización, salvo funciones legales de entidades públicas (Art 10).</p>
+                            <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                                <span class="font-bold text-blue-800 text-xs uppercase">Blindaje Técnico (Privacy by Design)</span>
+                                <p class="mt-1">Seudonimización automática en el pipeline NER. Las identidades se procesan con <em>Hashing Salado</em> irreversible y solo se descifran si el grafo consolida una alerta de colusión proporcional.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONPES 3920 -->
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleLegal('legal4')" class="w-full bg-slate-50 p-4 text-left font-bold text-slate-800 flex justify-between items-center hover:bg-slate-100 transition-colors">
+                            <span>🏛 CONPES 3920 y MSPI</span>
+                            <span id="icon-legal4" class="text-slate-400 text-xl">＋</span>
+                        </button>
+                        <div id="content-legal4" class="hidden p-4 text-sm text-slate-600 border-t border-slate-100 bg-white">
+                            <p class="font-semibold text-slate-800 mb-1">Soberanía de Datos y Seguridad Digital</p>
+                            <p class="mb-3">La reserva sumarial prohíbe exponer información preliminar de expedientes a APIs comerciales externas en la nube.</p>
+                            <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                                <span class="font-bold text-blue-800 text-xs uppercase">Blindaje Técnico (On-Premise)</span>
+                                <p class="mt-1">Despliegue exclusivo de LLMs locales de código abierto (ej. Llama-3 cuantizado) ejecutándose físicamente en el Datacenter de la PGN, asegurando 100% de soberanía algorítmica.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: IMPACTO MISIONAL -->
+        <section id="sec-impacto" class="hidden fade-in space-y-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <span class="text-blue-600">■</span> Impacto Estratégico en la PGN
+                </h2>
+                <p class="text-slate-600 mb-6 leading-relaxed">
+                    La implementación de la arquitectura GraphRAG redefine operativamente el cumplimiento misional de la Procuraduría. En esta sección se resumen los indicadores clave de rendimiento (KPIs) y cómo el sistema transforma las tres funciones esenciales del Ministerio Público (Preventiva, Disciplinaria e Intervención).
+                </p>
+
+                <!-- Impact Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 text-white shadow-md text-center">
+                        <div class="text-4xl mb-2">⏱</div>
+                        <div class="text-4xl font-extrabold mb-1">-75%</div>
+                        <div class="text-sm text-blue-200 font-semibold uppercase tracking-wide">Tiempo de Lectura</div>
+                        <div class="text-xs text-blue-300 mt-2">Reducción en la síntesis y organización probatoria física/digital.</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-cyan-700 to-cyan-600 rounded-xl p-6 text-white shadow-md text-center">
+                        <div class="text-4xl mb-2">🛡</div>
+                        <div class="text-4xl font-extrabold mb-1">100%</div>
+                        <div class="text-sm text-cyan-200 font-semibold uppercase tracking-wide">Reserva Legal</div>
+                        <div class="text-xs text-cyan-100 mt-2">Cero fugas de datos. Procesamiento totalmente On-Premise.</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-teal-700 to-teal-600 rounded-xl p-6 text-white shadow-md text-center">
+                        <div class="text-4xl mb-2">🎯</div>
+                        <div class="text-4xl font-extrabold mb-1">Multi-Hop</div>
+                        <div class="text-sm text-teal-200 font-semibold uppercase tracking-wide">Razonamiento</div>
+                        <div class="text-xs text-teal-100 mt-2">Capacidad de conectar hechos ocultos a través de múltiples documentos.</div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="font-bold text-slate-800 text-lg border-b border-slate-200 pb-2">Beneficios por Función Misional</h3>
+                    
+                    <div class="bg-slate-50 p-4 rounded border border-slate-100 flex gap-4 items-start">
+                        <div class="text-2xl text-blue-500">⚲</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Función Preventiva</h4>
+                            <p class="text-sm text-slate-600 mt-1">Habilita la búsqueda semántica e identificación predictiva de patrones recurrentes de riesgo en pliegos de contratación (ej. clonación de objetos contractuales) de forma automatizada y antes de la adjudicación, protegiendo el SGR.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded border border-slate-100 flex gap-4 items-start">
+                        <div class="text-2xl text-blue-500">⚖</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Función Disciplinaria</h4>
+                            <p class="text-sm text-slate-600 mt-1">Previene la caducidad y prescripción de los términos jurídicos al agilizar drásticamente el triage y la estructuración de expedientes acumulados en los despachos territoriales.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded border border-slate-100 flex gap-4 items-start">
+                        <div class="text-2xl text-blue-500">✍</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Función de Intervención</h4>
+                            <p class="text-sm text-slate-600 mt-1">Genera matrices consistentes de Hechos-Normas-Pruebas estructuradas en el Grafo, permitiendo a los procuradores judiciales intervenir con argumentos de alta solidez científica, trazabilidad inobjetable y rigor probatorio.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // State Management
+        const state = {
+            currentSection: 'desafio',
+            chartsInitialized: false,
+            techPhaseData: {
+                'A': {
+                    title: 'Fase A: Ingesta Multimodal (Pipeline ETL)',
+                    desc: 'Los documentos del <strong>SIM</strong> son procesados mediante un pipeline de extracción avanzado:',
+                    bullets: ['<strong>OCR Avanzado (LayoutLMv3):</strong> Extracción de texto de PDFs conservando la jerarquía de tablas y firmas.', '<strong>Chunking Semántico:</strong> Segmentación dinámica basada en la estructura procesal (autos, testimonios) en lugar de cortes arbitrarios por caracteres.'],
+                    log: '> [INFO] Inicializando ingesta de 5,000 folios...<br>> [SUCCESS] Layout conservado. Fragmentación completada.'
+                },
+                'B': {
+                    title: 'Fase B: Extracción Dual (NER Legal)',
+                    desc: 'El texto segmentado pasa por un modelo ajustado a jurisprudencia PGN para generar tripletas semánticas:',
+                    bullets: ['<strong>Entidades (Nodos):</strong> Servidor Público, Contrato, Conducta, Norma Violada, Prueba.', '<strong>Relaciones (Aristas):</strong> [ADJUDICA], [INCURRE_EN], [VULNERA].', 'Construye la matriz ontológica matemática (E, R, L) para el grafo.'],
+                    log: '> [NER] Analizando Auto de Indagación...<br>> [EXTRACT] Nodos: Alcalde(Juan P.), Ley(1952). Relación: [VULNERA]'
+                },
+                'C': {
+                    title: 'Fase C: Grafo de Integridad (Neo4j)',
+                    desc: 'Las tripletas se indexan en una base de datos orientada a grafos, modelando la ruta probatoria:',
+                    bullets: ['Visualización explícita de conexiones entre actores aislados documentalmente.', 'Permite aplicar algoritmos topológicos para detectar "carruseles" de contratación.', 'Habilita consultas estructuradas de alta velocidad mediante Cypher.'],
+                    log: '> [CYPHER] MATCH (p:Servidor)-[:ADJUDICA]->(c:Contrato)<br>> [INDEX] 150,000 nodos actualizados. DB Lista.'
+                },
+                'D': {
+                    title: 'Fase D: Fusión Vectorial (Multi-Hop)',
+                    desc: 'Resolución de consultas complejas cruzando matemáticas de similitud y topología de red:',
+                    bullets: ['<strong>Similitud del Coseno:</strong> Busca fragmentos textuales idénticos en jurisprudencia.', '<strong>Multi-Hop Reasoning:</strong> Responde preguntas como: "¿Qué contratista adjudicado tiene socios sancionados en el SIRI?"', 'Garantiza contexto absoluto para evitar alucinaciones.'],
+                    log: '> [QUERY] "Riesgo regalías Chocó"<br>> [RETRIEVAL] Vectorial: 4 Docs. Grafo: 2 Relaciones detectadas.'
+                },
+                'E': {
+                    title: 'Fase E: Orquestación Agéntica',
+                    desc: 'Coordinación segura mediante LangGraph para redactar resúmenes blindados jurídicamente:',
+                    bullets: ['Sistema Multi-Agente: Orquestador, Buscador, Evaluador (XAI), Redactor.', '<strong>Reglas Duras:</strong> Si el Evaluador no encuentra enlace documental, elimina la afirmación.', 'Asegura que la IA actúe como soporte al operador (Human-in-the-loop).'],
+                    log: '> [AGENT_XAI] Verificando fuente probatoria...<br>> [SUCCESS] Cita en Folio 45. Generando Resumen Ejecutivo.'
+                }
+            }
+        };
+
+        // Navigation Logic
+        function navigate(sectionId) {
+            // Update Navigation UI
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('nav-active', 'bg-slate-800');
+                btn.classList.add('hover:bg-slate-800', 'text-slate-300');
+            });
+            const activeBtn = document.getElementById('nav-' + sectionId);
+            activeBtn.classList.add('nav-active');
+            activeBtn.classList.remove('hover:bg-slate-800', 'text-slate-300');
+
+            // Hide all sections
+            ['desafio', 'arquitectura', 'gobernanza', 'impacto'].forEach(id => {
+                document.getElementById('sec-' + id).classList.add('hidden');
+            });
+
+            // Show target section
+            document.getElementById('sec-' + sectionId).classList.remove('hidden');
+            state.currentSection = sectionId;
+
+            // Lazy load charts if navigating to architecture
+            if (sectionId === 'arquitectura' && !state.chartsInitialized) {
+                initRadarChart();
+                state.chartsInitialized = true;
+            }
+        }
+
+        // Tech Phase Interaction Logic
+        function showTechPhase(phaseId) {
+            // Update Buttons
+            document.querySelectorAll('.tech-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'border-blue-600', 'text-blue-900', 'font-semibold');
+                btn.classList.add('bg-slate-50', 'border-transparent', 'text-slate-600', 'hover:bg-slate-100');
+            });
+            const activeBtn = document.getElementById('btn-fase-' + phaseId);
+            activeBtn.classList.add('bg-blue-50', 'border-blue-600', 'text-blue-900', 'font-semibold');
+            activeBtn.classList.remove('bg-slate-50', 'border-transparent', 'text-slate-600', 'hover:bg-slate-100');
+
+            // Update Content
+            const data = state.techPhaseData[phaseId];
+            document.getElementById('phase-title').innerText = data.title;
+            
+            let bulletsHtml = data.bullets.map(b => `<li class="flex gap-2"><span class="text-blue-400">▹</span> <span>${b}</span></li>`).join('');
+            
+            document.getElementById('phase-content').innerHTML = `
+                <p class="fade-in">${data.desc}</p>
+                <ul class="list-none space-y-2 mt-2 fade-in">
+                    ${bulletsHtml}
+                </ul>
+                <div class="mt-4 p-3 bg-slate-800 rounded border border-slate-700 font-mono text-xs text-green-400 fade-in">
+                    ${data.log}
+                </div>
+            `;
+        }
+
+        // Accordion Logic for Legal section
+        function toggleLegal(id) {
+            const content = document.getElementById('content-' + id);
+            const icon = document.getElementById('icon-' + id);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.innerText = '－';
+            } else {
+                content.classList.add('hidden');
+                icon.innerText = '＋';
+            }
+        }
+
+        // Initialize Charts
+        function initCharts() {
+            // Bar Chart (Desafio Section)
+            const ctxTime = document.getElementById('timeChart').getContext('2d');
+            new Chart(ctxTime, {
+                type: 'bar',
+                data: {
+                    labels: ['Lectura y Triage', 'Cruce de Antecedentes', 'Identificación Hechos/Norma', 'Redacción de Autos'],
+                    datasets: [
+                        {
+                            label: 'Proceso Manual Tradicional (Horas)',
+                            data: [120, 45, 80, 40],
+                            backgroundColor: '#94a3b8', // Slate 400
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Proceso Asistido GraphRAG (Horas)',
+                            data: [15, 2, 10, 12],
+                            backgroundColor: '#2563eb', // Blue 600
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Horas Invertidas (Promedio)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+        function initRadarChart() {
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Comprensión Lingüística', 'Explicabilidad (XAI)', 'Privacidad / Reserva', 'Precisión Jurídica', 'Velocidad de Búsqueda'],
+                    datasets: [{
+                        label: 'LLM Comercial (GPT-4 / Claude)',
+                        data: [95, 20, 10, 60, 85],
+                        fill: true,
+                        backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                        borderColor: '#94a3b8',
+                        pointBackgroundColor: '#94a3b8',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#94a3b8'
+                    }, {
+                        label: 'Arquitectura GraphRAG PGN (Local)',
+                        data: [90, 95, 100, 95, 80],
+                        fill: true,
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                        borderColor: '#2563eb',
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#2563eb'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: { line: { borderWidth: 2 } },
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // On Load
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+        });
+
+    </script>
+</body>
+</html>
