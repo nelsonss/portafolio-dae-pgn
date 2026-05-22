@@ -17,7 +17,7 @@ Alineado de forma estricta con las directrices de la **Política Nacional de Exp
 
 El portafolio completo ha sido compilado como aplicaciones interactivas de una sola página (SPAs) autocontenidas y de alto rendimiento. Gracias a la infraestructura de GitHub Pages, la Alta Dirección y el Comité de Evaluación pueden **interactuar directamente con los simuladores en tiempo real** haciendo clic en el siguiente enlace:
 
-👉 **[Haga Clic Aquí para Abrir el Portal Enrutador e Interactuar con el Portafolio Completo en Vivo](#)** *(Reemplazar este enlace por la URL pública que te entregue GitHub Pages, ej: https://nelsonss.github.io/portafolio-dae-pgn/)*
+👉 **[Haga Clic Aquí para Abrir el Portal Enrutador e Interactuar con el Portafolio Completo en Vivo](https://nelsonss.github.io/portafolio-dae-pgn/)*)**
 
 ---
 
